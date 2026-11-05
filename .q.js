@@ -1,8 +1,7 @@
-return (function(){
-const errs=[];
-const oe=console.error; console.error=(...a)=>{errs.push(a.map(x=>x&&x.stack?x.stack:String(x)).join(" ").slice(0,800)); oe(...a);};
-return new Promise(async (res)=>{
-  try { const ids = await window.draw.add({ type: "mermaid", code: "flowchart LR\n A-->B", x: 0, y: 0 }); res("OK "+JSON.stringify(ids)); }
-  catch(e){ res("ERR "+(e && e.stack ? e.stack : String(e)).slice(0,1500)+"\nconsole:"+errs.join("\n")); }
-});
+return (async function(){
+const H={"X-Flow-Request":"1"};
+const get=async(p)=>{const r=await fetch(p,{headers:H,credentials:"include"});return r.status+" "+(await r.text());};
+const r=JSON.parse((await get("/api/runs/ec44c3449c1ab34ff66f13dd")).slice(4));
+const run=r.run||r; const jobs=r.jobs||[];
+return run.status+" | "+jobs.map(j=>j.name+":"+j.status).join(", ");
 })();

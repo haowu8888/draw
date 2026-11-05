@@ -6,6 +6,7 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Hono } from "hono";
+import { config } from "./config";
 import { auth } from "./auth";
 import { canEdit, coverPath, flushAll, getBoard, getFiles, recordActivity, resolveRole, saveCover, saveFile } from "./boards";
 import { handleUpgrade } from "./collab";
@@ -159,7 +160,7 @@ if (fs.existsSync(dist)) {
   app.get("*", (c) => (c.req.path.startsWith("/api/") ? c.notFound() : c.html(fs.readFileSync(path.join(dist, "index.html"), "utf8"))));
 }
 
-const port = Number(process.env.PORT || 3000);
+const port = config.port;
 const server = serve({ fetch: app.fetch, port }, () => console.log(`[draw] server listening on http://localhost:${port}`));
 server.on("upgrade", (req, socket, head) => {
   if (req.url?.startsWith("/api/collab")) handleUpgrade(req, socket, head);

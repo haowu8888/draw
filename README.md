@@ -11,16 +11,45 @@ npm run dev                 # 同时启动 API(3000) 与前端(5173)
 ```
 
 打开 http://localhost:5173 ，**第一个注册的账号自动成为管理员**（可访问 `/dashboard` 后台）。
-未配置 SMTP 时，注册 / 登录 / 找回密码的邮箱验证码会打印在服务端日志里。
+未配置 SMTP 时不要求邮箱验证；登录 / 找回密码的验证码会打印在服务端日志里。
 
-生产环境：
+## 配置
+
+所有部署相关的值都通过环境变量配置（`npm run dev` / `npm start` 会自动读取 `.env`），完整说明见 [`.env.example`](.env.example)。生产环境必填两项，缺了服务会拒绝启动并提示：
+
+| 变量 | 说明 |
+| --- | --- |
+| `PUBLIC_URL` | 用户在浏览器里访问的地址，如 `https://draw.example.com`。登录 Cookie、来源校验都以它为准；换域名只改这里 |
+| `AUTH_SECRET` | 会话签名密钥，≥ 32 位随机字符串（`openssl rand -base64 36`） |
+| `TRUSTED_ORIGINS` | 额外入口（如同时用 IP 直连），逗号分隔，支持 `https://*.example.com` |
+| `SMTP_*` | 可选；配置后注册需要邮箱验证（可用 `REQUIRE_EMAIL_VERIFICATION` 覆盖） |
+| `COOKIE_SECURE` | 可选；默认跟随 `PUBLIC_URL` 是否为 https。https 域名下用 http IP 访问将无法登录 |
+
+启动时日志第一行会打印生效的配置（不含密钥）。
+
+## 部署
+
+### Docker Compose（推荐）
 
 ```bash
-npm run build               # 输出到 dist/
-npm start                   # 由 Node 服务同时提供 API、WebSocket 和静态页面（PORT，默认 3000）
+git clone https://github.com/haowu8888/draw.git && cd draw
+cp .env.example .env        # 至少改 PUBLIC_URL、AUTH_SECRET；APP_PORT 为宿主机端口
+docker compose up -d --build
 ```
 
-`.env` 不会被自动加载，启动前请导出环境变量（或使用 `node --env-file=.env`/进程管理器）。
+数据（SQLite 与上传文件）在 volume `draw_data`。前面有 Nginx / OpenResty 反代时，需转发 WebSocket（`/api/collab`）。
+
+### Flow 流水线
+
+[`deploy/flow.yaml`](deploy/flow.yaml)：构建镜像（含类型检查，依赖层走 Docker 缓存）→ 部署到主机组 → 健康检查。
+换服务器时只改其中的 `deploy.hosts` / `deploy.target`；域名、端口、密钥、SMTP 都放在 Flow 部署环境的变量和机密里（`DRAW_PUBLIC_URL`、`DRAW_AUTH_SECRET` 等，见文件头注释）。
+
+### 直接运行
+
+```bash
+npm ci && npm run build
+npm start                   # 读取 .env；由 Node 服务同时提供 API、WebSocket 和静态页面
+```
 
 ## 技术栈
 

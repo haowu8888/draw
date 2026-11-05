@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { z } from "zod";
 import { auth } from "../auth";
+import { config } from "../config";
 import { cleanupUserData, emitBoard, getBoard, recordActivity, resolveRole } from "../boards";
 import { db, getSetting, json, newId, now, setSetting } from "../db";
 import { adminProcedure, fail, protectedProcedure, publicProcedure, router } from "../trpc";
@@ -224,7 +225,7 @@ export const settingRouter = router({
     setSetting("announcement", input.announcement.trim());
     return true;
   }),
-  tasks: adminProcedure.query(() => ({ enabled: !!process.env.REDIS_URL })),
+  tasks: adminProcedure.query(() => ({ enabled: !!config.redisUrl })),
 });
 
 // ---------------- users (admin) ----------------

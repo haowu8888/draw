@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { admin, emailOTP } from "better-auth/plugins";
 import { getMigrations } from "better-auth/db/migration";
 import { cleanupUserData } from "./boards";
+import { config } from "./config";
 import { db } from "./db";
 import { sendMail } from "./mail";
 
@@ -14,14 +15,15 @@ const OTP_SUBJECT = {
 
 export const authOptions = {
   appName: "Draw",
-  baseURL: process.env.BASE_URL || "http://localhost:5173",
-  secret: process.env.AUTH_SECRET || "dev-secret-please-change-me-0123456789",
+  baseURL: config.publicUrl,
+  secret: config.authSecret,
   database: db,
-  trustedOrigins: (process.env.TRUSTED_ORIGINS || "http://localhost:5173,http://localhost:3000").split(","),
+  trustedOrigins: config.trustedOrigins,
+  advanced: { useSecureCookies: config.cookieSecure },
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
-    requireEmailVerification: process.env.REQUIRE_EMAIL_VERIFICATION !== "false",
+    requireEmailVerification: config.requireEmailVerification,
   },
   user: {
     additionalFields: {

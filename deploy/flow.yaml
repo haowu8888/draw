@@ -1,5 +1,14 @@
-# Draw 白板：构建镜像（含类型检查，依赖层走 Docker 缓存）→ 部署到 CC 服务器（Agent 接入）并健康检查
-# 环境 CC 提供：DRAW_PORT、DRAW_BASE_URL（对外主地址）、DRAW_TRUSTED_ORIGINS（逗号分隔的可信来源）和 DRAW_AUTH_SECRET（机密）
+# Draw 白板：构建镜像（含类型检查，依赖层走 Docker 缓存）→ 部署到主机组并健康检查
+#
+# 换服务器 / 别人部署：只改下面 deploy.hosts（主机组）和 deploy.target（目录），其余全部来自
+# 部署环境（环境与主机 → 环境）的变量和机密，不用改这个文件：
+#   DRAW_PUBLIC_URL            变量  用户访问地址，如 https://draw.example.com（必填）
+#   DRAW_AUTH_SECRET           机密  至少 32 位随机字符串（必填）
+#   DRAW_PORT                  变量  宿主机端口，默认 4180
+#   DRAW_TRUSTED_ORIGINS       变量  额外可信来源，逗号分隔，支持 https://*.example.com
+#   DRAW_SMTP_HOST / DRAW_SMTP_PORT / DRAW_SMTP_SECURE / DRAW_SMTP_USER / DRAW_SMTP_FROM  变量（可选）
+#   DRAW_SMTP_PASS             机密（可选）
+#   DRAW_REQUIRE_EMAIL_VERIFICATION  变量（可选，默认有 SMTP 才验证邮箱）
 name: draw
 source:
   url: https://github.com/haowu8888/draw.git
@@ -32,8 +41,11 @@ stages:
             run: |
               IMAGE="${IMAGE:-draw:$FLOW_RUN_NUMBER}"
               PORT="${DRAW_PORT:-4180}"
+              PUBLIC_URL="${DRAW_PUBLIC_URL:-${DRAW_BASE_URL:-}}"
+              [ -n "$PUBLIC_URL" ] || { echo "请在部署环境里设置变量 DRAW_PUBLIC_URL"; exit 1; }
+              [ -n "${DRAW_AUTH_SECRET:-}" ] || { echo "请在部署环境里设置机密 DRAW_AUTH_SECRET"; exit 1; }
               if docker ps --format '{{.Names}} {{.Ports}}' | grep -v '^draw ' | grep -q ":$PORT->"; then
-                echo "端口 $PORT 已被其他容器占用，请修改环境 CC 的 DRAW_PORT"; exit 1
+                echo "端口 $PORT 已被其他容器占用，请修改部署环境的 DRAW_PORT"; exit 1
               fi
               cat > compose.yaml <<'EOF'
               services:
@@ -41,22 +53,26 @@ stages:
                   image: ${IMAGE}
                   container_name: draw
                   restart: unless-stopped
+                  env_file: app.env
                   ports:
                     - "0.0.0.0:${DRAW_PORT}:3000"
-                  environment:
-                    BASE_URL: ${BASE_URL}
-                    TRUSTED_ORIGINS: ${TRUSTED_ORIGINS}
-                    AUTH_SECRET: ${AUTH_SECRET}
-                    REQUIRE_EMAIL_VERIFICATION: "false"
                   volumes:
                     - draw_data:/data
               volumes:
                 draw_data:
               EOF
               umask 077
-              BASE_URL="${DRAW_BASE_URL:-http://117.55.229.206:$PORT}"
-              printf 'IMAGE=%s\nDRAW_PORT=%s\nBASE_URL=%s\nTRUSTED_ORIGINS=%s\nAUTH_SECRET=%s\n' "$IMAGE" "$PORT" "$BASE_URL" "${DRAW_TRUSTED_ORIGINS:-$BASE_URL}" "$DRAW_AUTH_SECRET" > .env
-              echo "发布 $IMAGE 到端口 $PORT"
+              printf 'IMAGE=%s\nDRAW_PORT=%s\n' "$IMAGE" "$PORT" > .env
+              # 应用配置（同 .env.example），只写已设置的项
+              {
+                echo "PUBLIC_URL=$PUBLIC_URL"
+                echo "AUTH_SECRET=$DRAW_AUTH_SECRET"
+                for k in TRUSTED_ORIGINS SMTP_HOST SMTP_PORT SMTP_SECURE SMTP_USER SMTP_PASS SMTP_FROM REQUIRE_EMAIL_VERIFICATION COOKIE_SECURE; do
+                  v=$(printenv "DRAW_$k" || true)
+                  if [ -n "$v" ]; then echo "$k=$v"; fi
+                done
+              } > app.env
+              echo "发布 $IMAGE → $PUBLIC_URL（宿主机端口 $PORT）"
               docker compose -p draw up -d --remove-orphans
           - name: 健康检查
             run: |

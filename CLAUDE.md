@@ -2,6 +2,7 @@
 
 Clone of the draw.taoya.art whiteboard SaaS. See README.md for features, layout and the open API.
 
+- Config: every deployment value comes from env vars read in `server/config.ts` (PUBLIC_URL, AUTH_SECRET, TRUSTED_ORIGINS, SMTP_*, …; documented in `.env.example`); production refuses to start without PUBLIC_URL/AUTH_SECRET. Deploy via `docker-compose.yml` or `deploy/flow.yaml` (values from Flow environment `DRAW_*` vars).
 - Entry points: `server/index.ts` (Hono HTTP + `/api/collab` WebSocket upgrade), `src/main.tsx` (routes).
 - Data: SQLite at `$DATA_DIR/draw.db` (default `data/`). App tables are created in `server/db.ts`; better-auth tables are migrated at startup in `server/auth.ts`.
 - Scene sync: clients send changed Excalidraw elements over the WebSocket; `server/boards.ts` merges by `version`/`versionNonce`, caches pages in memory and flushes to SQLite (~800 ms). Board-level events go through `boardEvents` → `collab.ts` broadcast.

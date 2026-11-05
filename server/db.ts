@@ -2,8 +2,9 @@ import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 import { nanoid } from "nanoid";
+import { config } from "./config";
 
-export const DATA_DIR = path.resolve(process.env.DATA_DIR || "data");
+export const DATA_DIR = path.resolve(config.dataDir);
 export const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 

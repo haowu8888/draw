@@ -1,0 +1,23 @@
+# 自部署：cp .env.example .env，至少改 PUBLIC_URL 和 AUTH_SECRET，然后 docker compose up -d --build
+services:
+  draw:
+    build: .
+    image: ${DRAW_IMAGE:-draw:latest}
+    container_name: ${DRAW_CONTAINER:-draw}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATA_DIR: /data
+      PORT: "3000"
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - draw_data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+volumes:
+  draw_data:

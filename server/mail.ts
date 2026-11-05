@@ -1,19 +1,14 @@
 import nodemailer from "nodemailer";
+import { config } from "./config";
 
-const transport = process.env.SMTP_HOST
-  ? nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT || 465),
-      secure: (process.env.SMTP_SECURE ?? "true") !== "false",
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    })
-  : null;
+const smtp = config.smtp;
+const transport = smtp ? nodemailer.createTransport({ host: smtp.host, port: smtp.port, secure: smtp.secure, auth: { user: smtp.user, pass: smtp.pass } }) : null;
 
 /** Sends mail through SMTP when configured; otherwise prints it to the server log (dev mode). */
 export async function sendMail(to: string, subject: string, text: string) {
-  if (!transport) {
+  if (!transport || !smtp) {
     console.log(`\n[mail] to=${to}\n[mail] ${subject}\n[mail] ${text}\n`);
     return;
   }
-  await transport.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to, subject, text });
+  await transport.sendMail({ from: smtp.from, to, subject, text });
 }
