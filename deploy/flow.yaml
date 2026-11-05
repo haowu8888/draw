@@ -1,4 +1,4 @@
-# Draw 白板：类型检查 → 构建镜像 → 部署到 CC 服务器（Agent 接入）并健康检查
+# Draw 白板：构建镜像（含类型检查，依赖层走 Docker 缓存）→ 部署到 CC 服务器（Agent 接入）并健康检查
 # 环境 CC 提供：DRAW_PORT、DRAW_BASE_URL（变量）和 DRAW_AUTH_SECRET（机密）
 name: draw
 source:
@@ -9,19 +9,6 @@ concurrency:
 retention:
   runs: 50
 stages:
-  - name: 检查
-    jobs:
-      - name: typecheck
-        image: node:24-bookworm-slim
-        cache: {key: draw-npm, paths: [.npm]}
-        env: {npm_config_cache: /workspace/.npm}
-        timeout: 20m
-        steps:
-          - name: 安装依赖
-            run: npm ci --ignore-scripts --include=dev --no-audit --no-fund
-          - name: 类型检查
-            run: npx tsc --noEmit -p .
-
   - name: 构建
     jobs:
       - name: image
@@ -30,6 +17,7 @@ stages:
         steps:
           - name: 构建镜像
             run: |
+              # 依赖层命中缓存时跳过 npm ci；类型检查在镜像构建里完成
               docker build -t "draw:$FLOW_RUN_NUMBER" -t draw:latest .
               echo "IMAGE=draw:$FLOW_RUN_NUMBER" >> "$FLOW_OUTPUT"
 
