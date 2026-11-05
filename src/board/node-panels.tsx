@@ -3,6 +3,7 @@ import { Check, CodeXml, Copy, NotebookText, Scan, Sparkles, X } from "lucide-re
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Dialog, Textarea } from "@/components/ui";
 import { useTRPC } from "@/lib/trpc";
+import { copyText } from "@/lib/utils";
 import { CodeEditor, type CodeLanguage } from "./code-editor";
 import { useEditor } from "./editor-context";
 import { cancelNodePreview, updateNodeData } from "./ops";
@@ -152,7 +153,7 @@ function PromptDialog({ stack, fonts, size, code, onClose }: { stack: Stack; fon
           </Button>
           <Button
             onClick={async () => {
-              await navigator.clipboard.writeText(text).catch(() => {});
+              await copyText(text);
               setCopied(true);
               setTimeout(() => setCopied(false), 1500);
             }}

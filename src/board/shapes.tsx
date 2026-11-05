@@ -1,6 +1,7 @@
 import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { viewportCenter, type API } from "./scene";
+import { uuid } from "@/lib/utils";
 
 /** Shape library: native Excalidraw shapes plus polygons stored as closed `line` elements (customData.shape). */
 export type ShapeDef = { id: string; label: string; d: string; native?: "rectangle" | "ellipse" | "diamond"; rounded?: boolean; open?: boolean; size?: [number, number] };
@@ -312,7 +313,7 @@ export function insertDevice(api: API, kind: DeviceKind) {
   const c = viewportCenter(api);
   const ox = c.x - width / 2;
   const oy = c.y - height / 2;
-  const group = crypto.randomUUID();
+  const group = uuid();
   const els = convertToExcalidrawElements(items.map((e) => ({ ...e, x: e.x + ox, y: e.y + oy, groupIds: [group] })) as never).map((e) => ({ ...e, customData: { ...e.customData, device: kind } }));
   api.updateScene({
     elements: [...api.getSceneElementsIncludingDeleted(), ...els],

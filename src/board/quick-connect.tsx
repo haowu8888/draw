@@ -1,7 +1,7 @@
 import { convertToExcalidrawElements, newElementWith, viewportCoordsToSceneCoords } from "@excalidraw/excalidraw";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, uuid } from "@/lib/utils";
 import { diagramOf } from "./diagram";
 import { useEditor } from "./editor-context";
 import { DEFAULT_STROKE } from "./ops";
@@ -61,7 +61,7 @@ function addConnected(api: API, id: string, side: Side) {
   const [arrow] = convertToExcalidrawElements([
     { type: "arrow", x: start.x, y: start.y, points: points.map((p) => [p.x - start.x, p.y - start.y]), strokeColor: DEFAULT_STROKE, strokeWidth: 2, roughness: el.roughness, startArrowhead: null, endArrowhead: "arrow" } as never,
   ]);
-  const newId = crypto.randomUUID();
+  const newId = uuid();
   const copy = { ...el, ...box, id: newId, seed: seed(), version: 1, versionNonce: seed(), updated: Date.now(), index: null, groupIds: [], frameId, link: null, boundElements: bindable ? [{ id: arrow.id, type: "arrow" }] : null } as ExcalidrawElement;
   const binding = (elementId: string) => ({ elementId, focus: 0, gap: GAP, fixedPoint: null });
   const link = { ...arrow, elbowed: false, frameId, startBinding: bindable ? binding(el.id) : null, endBinding: bindable ? binding(newId) : null } as ExcalidrawElement;

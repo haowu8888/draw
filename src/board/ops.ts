@@ -3,6 +3,7 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { AppState, BinaryFileData } from "@excalidraw/excalidraw/types";
 import { withNodeSnapshots } from "./node-overlays";
 import type { API } from "./scene";
+import { canWriteClipboardImage, copyText, uuid } from "@/lib/utils";
 
 // ---------------- palette & style constants ----------------
 
@@ -176,7 +177,7 @@ export function deleteSelected(api: API) {
 export function groupSelected(api: API) {
   const ids = new Set(selectedWithText(api).map((e) => e.id));
   if (ids.size < 2) return;
-  const g = crypto.randomUUID();
+  const g = uuid();
   commit(
     api,
     api.getSceneElementsIncludingDeleted().map((e) => (ids.has(e.id) ? newElementWith(e, { groupIds: [...e.groupIds, g] }) : e)),
@@ -229,9 +230,9 @@ let memoryClip: string | null = null;
 
 /** Copies of `els` with fresh ids (bindings, groups and containers remapped) shifted by dx/dy. */
 function cloneElements(els: readonly ExcalidrawElement[], dx: number, dy: number) {
-  const ids = new Map(els.map((e) => [e.id, crypto.randomUUID()]));
+  const ids = new Map(els.map((e) => [e.id, uuid()]));
   const groups = new Map<string, string>();
-  const group = (g: string) => (groups.has(g) || groups.set(g, crypto.randomUUID()), groups.get(g)!);
+  const group = (g: string) => (groups.has(g) || groups.set(g, uuid()), groups.get(g)!);
   return els.map((e) => {
     const c: Record<string, unknown> = {
       ...e,
@@ -268,6 +269,7 @@ export async function copySelection(api: API) {
   const all = api.getFiles();
   const files = Object.fromEntries(els.flatMap((e) => (e.type === "image" && e.fileId && all[e.fileId] ? [[e.fileId, all[e.fileId]]] : [])));
   memoryClip = JSON.stringify({ type: CLIP_TYPE, elements: els, files });
+  // the in-memory copy is enough for pasting inside the app; the system clipboard is best effort
   await navigator.clipboard?.writeText(memoryClip).catch(() => {});
 }
 
@@ -319,16 +321,27 @@ export function pasteStyle(api: API) {
   );
 }
 
+/** Copies the selection as PNG; without the async Clipboard API (plain HTTP) it downloads the PNG instead. Returns whether it was copied. */
 export async function copyAsPng(api: API) {
   const appState = { ...api.getAppState(), exportBackground: true };
   const blob = withNodeSnapshots(selectedWithText(api), api.getFiles()).then((s) => exportToBlob({ elements: s.elements, appState, files: s.files, mimeType: "image/png" }));
-  await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+  if (canWriteClipboardImage()) {
+    await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+    return true;
+  }
+  const url = URL.createObjectURL(await blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "selection.png";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  return false;
 }
 
 export async function copyAsSvg(api: API) {
   const s = await withNodeSnapshots(selectedWithText(api), api.getFiles());
   const svg = await exportToSvg({ elements: s.elements, appState: { ...api.getAppState(), exportBackground: false }, files: s.files });
-  await navigator.clipboard.writeText(svg.outerHTML);
+  if (!(await copyText(svg.outerHTML))) throw new Error("复制失败");
 }
 
 // ---------------- Excalidraw action bridge ----------------

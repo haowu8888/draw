@@ -3,6 +3,7 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { BinaryFileData } from "@excalidraw/excalidraw/types";
 import { rollbackScene } from "./ops";
 import { viewportCenter, type API } from "./scene";
+import { uuid } from "@/lib/utils";
 
 /**
  * Mermaid "diagram" nodes: the generated elements share a group whose id is the diagram id,
@@ -326,7 +327,7 @@ export function place(rendered: { elements: ExcalidrawElement[] }, data: Diagram
 /** Inserts a diagram at the viewport center, selects it and returns its id. */
 export async function insertDiagram(api: API, code: string) {
   const rendered = await renderDiagram(code);
-  const data = { id: crypto.randomUUID(), code };
+  const data = { id: uuid(), code };
   const b = bounds(rendered.elements);
   const c = viewportCenter(api);
   const els = place(rendered, data, { x: c.x - b.width / 2, y: c.y - b.height / 2 });

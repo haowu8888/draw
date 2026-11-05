@@ -2,7 +2,7 @@ import { Check, CircleDot, Frame, Link, Radio, Scan, SquareDashed, X } from "luc
 import { newElementWith } from "@excalidraw/excalidraw";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Input, Popover, Tooltip } from "@/components/ui";
-import { cn } from "@/lib/utils";
+import { cn, copyText } from "@/lib/utils";
 import { useEditor } from "./editor-context";
 import { updateSelected } from "./ops";
 import type { API } from "./scene";
@@ -353,7 +353,7 @@ export function FrameControls({ frame }: { frame: FrameEl }) {
         type="button"
         className="ms-1 flex h-8 items-center gap-1.5 rounded-md bg-muted px-2.5 text-[13px] hover:bg-accent"
         onClick={async () => {
-          await navigator.clipboard.writeText(frameLink(frame.id)).catch(() => {});
+          await copyText(frameLink(frame.id));
           setCopied(true);
           setTimeout(() => setCopied(false), 1500);
         }}

@@ -89,7 +89,7 @@ export interface CanvasMenuActions {
 
 function buildItems(api: API, target: "canvas" | "element", point: Point, readOnly: boolean, act: CanvasMenuActions): Item[] {
   const exportAll: Item = { id: "export", label: "导出…", icon: <Download />, shortcut: `${MOD}${SHIFT}E`, onSelect: () => act.openExport("canvas") };
-  const copyPng: Item = { id: "copy-png", label: "复制为 PNG", icon: <ClipboardCopy />, shortcut: `${SHIFT}${ALT}C`, onSelect: () => copyAsPng(api).catch(() => toast.error("复制失败")) };
+  const copyPng: Item = { id: "copy-png", label: "复制为 PNG", icon: <ClipboardCopy />, shortcut: `${SHIFT}${ALT}C`, onSelect: () => copyAsPng(api).then((copied) => (copied ? toast.success("已复制为 PNG") : toast.info("当前不是 HTTPS 访问，已改为下载 PNG")), () => toast.error("复制失败")) };
   const paste: Item = { id: "paste", label: "粘贴", icon: <ClipboardPaste />, shortcut: `${MOD}V`, onSelect: () => pasteAt(api, point).then((ok) => !ok && toast.info("剪贴板中没有可粘贴的元素")) };
   if (readOnly) return target === "element" ? [copyPng] : [exportAll];
   if (target === "canvas") {

@@ -11,6 +11,7 @@ import { fillFor, PALETTE, runAction, type FillMode } from "./ops";
 import type { Stack } from "./sandbox";
 import { createEmbeddable, createNode, nodeKind, type API } from "./scene";
 import { SHAPES, convertShape, shapeOf } from "./shapes";
+import { uuid } from "@/lib/utils";
 
 /** Usage notes shown by `window.draw.help()` (also handy for AI agents driving the canvas). */
 export const AUTOMATION_HELP = `Draw 画布自动化接口（window.draw）。坐标为场景坐标（左上角 x/y），所有修改一次调用 = 一条撤销记录。
@@ -118,7 +119,7 @@ async function fileFromSrc(src: string): Promise<BinaryFileData> {
     fr.onerror = () => rej(new Error("图片读取失败"));
     fr.readAsDataURL(blob);
   });
-  return { id: crypto.randomUUID(), mimeType: blob.type || "image/png", dataURL, created: Date.now() } as BinaryFileData;
+  return { id: uuid(), mimeType: blob.type || "image/png", dataURL, created: Date.now() } as BinaryFileData;
 }
 
 export function createAutomation(api: API, opts: { readOnly: boolean; stacks: () => Stack[] }) {
@@ -254,14 +255,14 @@ export function createAutomation(api: API, opts: { readOnly: boolean; stacks: ()
       }
       case "mermaid": {
         const r = await renderDiagram(str(spec.code));
-        const data = { id: spec.id ?? crypto.randomUUID(), code: str(spec.code) };
+        const data = { id: spec.id ?? uuid(), code: str(spec.code) };
         files.push(...(Object.values(r.files) as BinaryFileData[]));
         return place(r, data, { x, y });
       }
       case "icon": {
         const c = colorOf(spec.color);
         const dataURL = await svgToDataUrl(str(spec.icon), c.stroke);
-        const fileId = crypto.randomUUID();
+        const fileId = uuid();
         files.push({ id: fileId, mimeType: "image/svg+xml", dataURL, created: Date.now() } as BinaryFileData);
         const size = num(spec.size, 64);
         const [img] = convertToExcalidrawElements([{ type: "image", fileId, x, y, width: size, height: size } as never]);

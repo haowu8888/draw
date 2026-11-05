@@ -739,7 +739,7 @@ function Bar({ selected, texts, focusComment }: { selected: ExcalidrawElement[];
               </>
             )}
             <SubMenu label="复制 / 粘贴为" icon={<Copy />}>
-              <MenuItem onClick={() => copyAsPng(api).then(() => toast.success("已复制为 PNG"), () => toast.error("复制失败"))}>复制为 PNG</MenuItem>
+              <MenuItem onClick={() => copyAsPng(api).then((copied) => (copied ? toast.success("已复制为 PNG") : toast.info("当前不是 HTTPS 访问，浏览器不允许写入图片剪贴板，已改为下载 PNG")), () => toast.error("复制失败"))}>复制为 PNG</MenuItem>
               <MenuItem onClick={() => copyAsSvg(api).then(() => toast.success("已复制为 SVG"), () => toast.error("复制失败"))}>复制为 SVG</MenuItem>
               <MenuSeparator />
               <MenuItem onClick={() => copyStyle(api)}>
