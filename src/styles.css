@@ -1,0 +1,133 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: "Inter Variable", "Inter", "MiSans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Berkeley Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-admin-bg: var(--admin-bg);
+  --color-admin-card: var(--admin-card);
+  --color-admin-hover: var(--admin-hover);
+  --color-admin-divider: var(--admin-divider);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #f8f8f7;
+  --foreground: #262626;
+  --card: #ffffff;
+  --card-foreground: #262626;
+  --popover: #ffffff;
+  --popover-foreground: #262626;
+  --primary: #262626;
+  --primary-foreground: #fafafa;
+  --secondary: rgb(0 0 0 / 0.04);
+  --secondary-foreground: #262626;
+  --muted: rgb(0 0 0 / 0.04);
+  --muted-foreground: #686868;
+  --accent: rgb(0 0 0 / 0.04);
+  --accent-foreground: #262626;
+  --destructive: #ef4444;
+  --destructive-foreground: #b91c1c;
+  --success: #10b981;
+  --success-foreground: #047857;
+  --warning: #f59e0b;
+  --warning-foreground: #b45309;
+  --info: #3b82f6;
+  --info-foreground: #1d4ed8;
+  --border: rgb(0 0 0 / 0.08);
+  --input: rgb(0 0 0 / 0.1);
+  --ring: #a3a3a3;
+  --admin-bg: #f0f0f0;
+  --admin-card: #f8f8f7;
+  --admin-hover: #37352f0a;
+  --admin-divider: #1f1f1f14;
+}
+
+.dark {
+  --background: #161616;
+  --foreground: #f5f5f5;
+  --card: #1b1b1b;
+  --card-foreground: #f5f5f5;
+  --popover: #1b1b1b;
+  --popover-foreground: #f5f5f5;
+  --primary: #f5f5f5;
+  --primary-foreground: #262626;
+  --secondary: color-mix(in oklab, #ffffff 4%, transparent);
+  --secondary-foreground: #f5f5f5;
+  --muted: color-mix(in oklab, #ffffff 4%, transparent);
+  --muted-foreground: #818181;
+  --accent: color-mix(in oklab, #ffffff 4%, transparent);
+  --accent-foreground: #f5f5f5;
+  --destructive: #fb414a;
+  --border: color-mix(in oklab, #ffffff 6%, transparent);
+  --input: color-mix(in oklab, #ffffff 8%, transparent);
+  --ring: #737373;
+  --admin-bg: #141414;
+  --admin-card: #1a1a1a;
+  --admin-hover: #ffffff0f;
+  --admin-divider: #ffffff1f;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* shadow used by cards/buttons in coss-ui */
+@utility shadow-xs-soft {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
