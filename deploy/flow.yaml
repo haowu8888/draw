@@ -1,0 +1,81 @@
+# Draw 白板：类型检查 → 构建镜像 → 部署到 CC 服务器（Agent 接入）并健康检查
+# 环境 CC 提供：DRAW_PORT、DRAW_BASE_URL（变量）和 DRAW_AUTH_SECRET（机密）
+name: draw
+source:
+  url: https://github.com/haowu8888/draw.git
+  branch: main
+concurrency:
+  group: draw-prod           # 同一时间只有一次发布
+retention:
+  runs: 50
+stages:
+  - name: 检查
+    jobs:
+      - name: typecheck
+        image: node:24-bookworm-slim
+        cache: {key: draw-npm, paths: [.npm]}
+        env: {npm_config_cache: /workspace/.npm}
+        timeout: 20m
+        steps:
+          - name: 安装依赖
+            run: npm ci --ignore-scripts --include=dev --no-audit --no-fund
+          - name: 类型检查
+            run: npx tsc --noEmit -p .
+
+  - name: 构建
+    jobs:
+      - name: image
+        runs-on: [docker]
+        timeout: 40m
+        steps:
+          - name: 构建镜像
+            run: |
+              docker build -t "draw:$FLOW_RUN_NUMBER" -t draw:latest .
+              echo "IMAGE=draw:$FLOW_RUN_NUMBER" >> "$FLOW_OUTPUT"
+
+  - name: 部署
+    jobs:
+      - name: deploy-prod
+        deploy:
+          hosts: prod-server
+          target: /opt/draw
+        steps:
+          - name: 发布
+            run: |
+              IMAGE="${IMAGE:-draw:$FLOW_RUN_NUMBER}"
+              PORT="${DRAW_PORT:-4180}"
+              if docker ps --format '{{.Names}} {{.Ports}}' | grep -v '^draw ' | grep -q ":$PORT->"; then
+                echo "端口 $PORT 已被其他容器占用，请修改环境 CC 的 DRAW_PORT"; exit 1
+              fi
+              cat > compose.yaml <<'EOF'
+              services:
+                draw:
+                  image: ${IMAGE}
+                  container_name: draw
+                  restart: unless-stopped
+                  ports:
+                    - "0.0.0.0:${DRAW_PORT}:3000"
+                  environment:
+                    BASE_URL: ${BASE_URL}
+                    TRUSTED_ORIGINS: ${BASE_URL}
+                    AUTH_SECRET: ${AUTH_SECRET}
+                    REQUIRE_EMAIL_VERIFICATION: "false"
+                  volumes:
+                    - draw_data:/data
+              volumes:
+                draw_data:
+              EOF
+              umask 077
+              printf 'IMAGE=%s\nDRAW_PORT=%s\nBASE_URL=%s\nAUTH_SECRET=%s\n' "$IMAGE" "$PORT" "${DRAW_BASE_URL:-http://117.55.229.206:$PORT}" "$DRAW_AUTH_SECRET" > .env
+              echo "发布 $IMAGE 到端口 $PORT"
+              docker compose -p draw up -d --remove-orphans
+          - name: 健康检查
+            run: |
+              for i in $(seq 1 40); do
+                if curl -fsS "http://127.0.0.1:${DRAW_PORT:-4180}/api/health"; then echo; echo "健康检查通过"; exit 0; fi
+                sleep 3
+              done
+              docker logs --tail 80 draw; exit 1
+          - name: 清理旧镜像
+            run: |
+              docker images draw --format '{{.Tag}}' | grep -E '^[0-9]+$' | sort -rn | tail -n +4 | xargs -r -I{} docker rmi "draw:{}" || true
