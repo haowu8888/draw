@@ -1,4 +1,5 @@
-# Draw 白板：构建镜像（含类型检查，依赖层走 Docker 缓存）→ 部署到主机组并健康检查
+# Draw 白板：构建镜像（含类型检查，依赖层走 Docker 缓存）+ 源码产物包 draw.zip → 部署到主机组并健康检查
+# 部署历史按产物包记录版本；重新部署旧版本时本机镜像已清理的话，用当时的产物包重新构建。
 #
 # 换服务器 / 别人部署：只改下面 deploy.hosts（主机组）和 deploy.target（目录），其余全部来自
 # 部署环境（环境与主机 → 环境）的变量和机密，不用改这个文件：
@@ -29,12 +30,21 @@ stages:
               # 依赖层命中缓存时跳过 npm ci；类型检查在镜像构建里完成
               docker build -t "draw:$FLOW_RUN_NUMBER" -t draw:latest .
               echo "IMAGE=draw:$FLOW_RUN_NUMBER" >> "$FLOW_OUTPUT"
+          - name: 打包源码
+            run: git archive --format=tar.gz -o draw-src.tar.gz HEAD && ls -l draw-src.tar.gz
+          - name: 产物包
+            kind: artifact-upload
+            with:
+              name: draw
+              paths: draw-src.tar.gz
+              version: ${FLOW_RUN_NUMBER}
 
   - name: 部署
     jobs:
       - name: deploy-prod
         deploy:
           hosts: prod-server
+          artifact: draw             # 产物包解压到 target：/opt/draw/draw-src.tar.gz
           target: /opt/draw
         steps:
           - name: 发布
@@ -44,6 +54,11 @@ stages:
               PUBLIC_URL="${DRAW_PUBLIC_URL:-${DRAW_BASE_URL:-}}"
               [ -n "$PUBLIC_URL" ] || { echo "请在部署环境里设置变量 DRAW_PUBLIC_URL"; exit 1; }
               [ -n "${DRAW_AUTH_SECRET:-}" ] || { echo "请在部署环境里设置机密 DRAW_AUTH_SECRET"; exit 1; }
+              if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+                echo "本机没有镜像 $IMAGE，用产物包重新构建"
+                rm -rf src && mkdir src && tar -xzf draw-src.tar.gz -C src
+                docker build -t "$IMAGE" src && rm -rf src
+              fi
               if docker ps --format '{{.Names}} {{.Ports}}' | grep -v '^draw ' | grep -q ":$PORT->"; then
                 echo "端口 $PORT 已被其他容器占用，请修改部署环境的 DRAW_PORT"; exit 1
               fi

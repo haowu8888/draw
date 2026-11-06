@@ -41,7 +41,7 @@ docker compose up -d --build
 
 ### Flow 流水线
 
-[`deploy/flow.yaml`](deploy/flow.yaml)：构建镜像（含类型检查，依赖层走 Docker 缓存）→ 部署到主机组 → 健康检查。
+[`deploy/flow.yaml`](deploy/flow.yaml)：构建镜像（含类型检查，依赖层走 Docker 缓存）+ 源码产物包 → 部署到主机组 → 健康检查；部署历史按产物包记录版本。
 换服务器时只改其中的 `deploy.hosts` / `deploy.target`；域名、端口、密钥、SMTP 都放在 Flow 部署环境的变量和机密里（`DRAW_PUBLIC_URL`、`DRAW_AUTH_SECRET` 等，见文件头注释）。
 
 ### 直接运行
